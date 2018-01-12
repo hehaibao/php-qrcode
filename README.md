@@ -6,4 +6,4 @@
 演示地址： http://www.hehaibao.com/qr
 
 预览：
-!(image)https://github.com/hehaibao/php-qrcode/blob/master/preview.gif
+![image](https://github.com/hehaibao/php-qrcode/blob/master/preview.gif)
