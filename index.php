@@ -29,9 +29,10 @@ if(isset($_GET['t'])){
 		input:focus{outline:none;}
 		pre{font-size:14px;line-height:20px;}
 		.tc{text-align:center;}
-		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:30px auto 20px;}
+		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:5% auto 20px;}
 		#qrcode li{padding:10px 0;}
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;}
+		.ipt:focus{border:1px solid #0074A2;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
 		#toast{width:300px;position:fixed;top:2%;right:1%;z-index:999999;background-color:rgba(0,0,0,.7);border-radius:5px;color:#fff;padding:10px 0;text-align:center;-webkit-animation: zoomOut .4s ease both;animation: zoomOut .4s ease both;}
 		@-webkit-keyframes zoomOut { 0% { opacity: 0; -webkit-transform: scale(.6); } 100% { opacity: 1; -webkit-transform: scale(1); } }
@@ -55,65 +56,78 @@ if(isset($_GET['t'])){
 
 <!--参数表单--->
 <ul id="qrcode" class="tc">
-	<li><input type="text" value="" placeholder="请输入二维码内容，文本／链接" class="ipt" id="content" required /></li>
-	<li><input type="text" value="" placeholder="请输入二维码尺寸，1-10之间" class="ipt" id="size" /></li>
-	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可" class="ipt" id="border_size" /></li>
+	<li><input type="text" value="" placeholder="请输入二维码内容，文本／链接(必填)" class="ipt" id="content" required /></li>
+	<li><input type="text" value="" placeholder="请输入二维码尺寸，1-10之间(选填)" class="ipt" id="size" /></li>
+	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可(选填)" class="ipt" id="border_size" /></li>
 	<li><img src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==" id="qrcodes"/></li>
 	<li><input type="button" value="生成二维码" id="submit"/></li>
 </ul>
 
 <!--js-->
 <script>
-	//显示提示框
+	// 默认二维码图片
+	var defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==';
+	// 显示提示框
 	var toast_timer = 0;
-	function showToast(message,t){
+	function showToast(message, t) {
 	    var alert = document.getElementById("toast");
 	    if(alert == null){
 	        alert =  document.createElement("div");
 	        alert.id = 'toast';
 	        alert.innerText = message;
-	    }else{
+	    } else {
 	        alert.style.opacity = .9;
 	    }
 	    document.body.appendChild(alert);
-	    t = (t != undefined) ? t : 1000;
-	    toast_timer = setTimeout("hideToast()", t);
+	    t = t ? t : 1000;
+	    toast_timer = setTimeout(function() {
+	    	// 隐藏提示框
+	    	if(alert) {
+	    		document.body.removeChild(alert); 
+	    		clearTimeout(toast_timer);
+	    	}
+	    }, t);
 	}
 	
-	//隐藏提示框
-	function hideToast(){
-	    var alert = document.getElementById("toast");
-	    if(alert != null) document.body.removeChild(alert); clearTimeout(toast_timer);
-	}
-	
-	function reset(){
-		showToast('请输入二维码内容～',1500);
+	// 提示并重置二维码内容输入框
+	function reset() {
+		showToast('请输入二维码内容～', 1500);
 		sessionStorage.removeItem('qrcode');
 		sessionStorage.removeItem('qrcontent');
-		document.getElementById('qrcodes').src = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==';
+		document.getElementById('qrcodes').src = defaultQr;
 	}
 	
-	window.onload = function(){
+	window.onload = function() {
 		var $content = document.getElementById('content'),
 			$size = document.getElementById('size'),
 			$border_size = document.getElementById('border_size'),
 			$qrcodes = document.getElementById('qrcodes'),
 		    $btn = document.getElementById('submit');
-		$btn.onclick = function(){
-			var con = $content.value, size = $size.value || 8, border_size = $border_size.value || 2;
-			if(con == ''){
+
+		// 生成二维码按钮 点击事件
+		$btn.onclick = function() {
+			var con = $content.value, 
+				size = $size.value || 8, 
+				border_size = $border_size.value || 2,
+				qrcode = window.location.protocol+'//'+window.location.host+'/qr/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
+
+			if(con == '') {
 				reset();
-			}else{
-				sessionStorage.setItem('qrcode',window.location.protocol+'//'+window.location.host+'/qr/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date());
-				sessionStorage.setItem('qrcontent',con);
-				$qrcodes.src = sessionStorage.getItem('qrcode');
+			} else {
+				// 缓存二维码内容和图片
+				sessionStorage.setItem('qrcode', qrcode);
+				sessionStorage.setItem('qrcontent', con);
+				$qrcodes.src = qrcode;
 			}
 		}
-		$content.onblur = function(){
-			$content.value == '' && reset();
+
+		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
+		if(sessionStorage.getItem('qrcode') != null) {
+			$qrcodes.src = sessionStorage.getItem('qrcode');
 		}
-		if(sessionStorage.getItem('qrcode') != null) $qrcodes.src = sessionStorage.getItem('qrcode');
-		if(sessionStorage.getItem('qrcontent') != null) $content.value = sessionStorage.getItem('qrcontent');
+		if(sessionStorage.getItem('qrcontent') != null) {
+			$content.value = sessionStorage.getItem('qrcontent');	
+		}
 	}
 </script>
 </body>
