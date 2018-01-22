@@ -8,3 +8,7 @@
 效果预览：
 
 ![image](https://github.com/hehaibao/php-qrcode/blob/master/preview.gif)
+
+依赖：
+
+phpqrcode: http://phpqrcode.sourceforge.net/
