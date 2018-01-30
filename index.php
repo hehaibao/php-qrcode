@@ -29,8 +29,10 @@ if(isset($_GET['t'])){
 		input:focus{outline:none;}
 		pre{font-size:14px;line-height:20px;}
 		.tc{text-align:center;}
+		.dn{display: none;}
 		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:5% auto 20px;}
 		#qrcode li{padding:10px 0;}
+		#qrcodes{margin: 0 auto;}
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;}
 		.ipt:focus{border:1px solid #0074A2;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
@@ -54,21 +56,24 @@ if(isset($_GET['t'])){
 	 - H水平    30%的字码可被修正
 </pre>-->
 
-<!--参数表单--->
+<!--参数表单-->
 <ul id="qrcode" class="tc">
 	<li><input type="text" value="" placeholder="请输入二维码内容，文本／链接(必填)" class="ipt" id="content" required /></li>
-	<li><input type="text" value="" placeholder="请输入二维码尺寸，1-10之间(选填)" class="ipt" id="size" /></li>
-	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可(选填)" class="ipt" id="border_size" /></li>
-	<li><img src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==" id="qrcodes"/></li>
+	<!-- <li><input type="text" value="" placeholder="请输入二维码尺寸，1-10之间(选填)" class="ipt" id="size" /></li>
+	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可(选填)" class="ipt" id="border_size" /></li> -->
+	<li><canvas id="qrcodes" class="dn" width="300" height="300"></canvas></li>
 	<li><input type="button" value="生成二维码" id="submit"/></li>
+	<li><a href="javascript:;" class="dn" id="download" onclick="Download('#qrcodes')">下载二维码</a></li>
 </ul>
 
 <!--js-->
 <script>
-	// 默认二维码图片
-	var defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==';
+	var $qrcodes = document.getElementById('qrcodes'),
+		$download = document.getElementById('download'),
+		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
+		toast_timer = 0;
+	
 	// 显示提示框
-	var toast_timer = 0;
 	function showToast(message, t) {
 	    var alert = document.getElementById("toast");
 	    if(alert == null){
@@ -94,21 +99,66 @@ if(isset($_GET['t'])){
 		showToast('请输入二维码内容～', 1500);
 		sessionStorage.removeItem('qrcode');
 		sessionStorage.removeItem('qrcontent');
-		document.getElementById('qrcodes').src = defaultQr;
+		draw(defaultQr);
+		$qrcodes.style.display = 'none';
+		$download.style.display = 'none';
 	}
-	
+
+	// canvas绘制二维码
+	function draw(imgSrc) {
+        if($qrcodes.getContext) {
+        	var ctx = $qrcodes.getContext('2d');
+        	var img = new Image();
+	        img.onload = function() {
+	            ctx.drawImage(img, 0, 0);
+	        };
+	        img.src = imgSrc || defaultQr;
+	        $qrcodes.style.display = 'block';
+	        $download.style.display = 'block';
+        }
+    }
+
+	// 下载二维码
+	function Download(el, picType) {
+        //------------------------------------------------------------------------
+        //1.确定图片的类型  获取到的图片格式 data:image/Png;base64,......
+        var type = picType || 'png'; //你想要什么图片格式 就选什么吧, 默认png
+        var d = document.querySelector(el);
+        var imgdata = d.toDataURL(type);
+        //2.0 将mime-type改为image/octet-stream,强制让浏览器下载
+        var fixtype = function(type) {
+            type = type.toLocaleLowerCase().replace(/jpg/i,'jpeg');
+            var r = type.match(/png|jpeg|bmp|gif/)[0];
+            return 'image/'+r;
+        };
+        imgdata = imgdata.replace(fixtype(type),'image/octet-stream');
+        //3.0 将图片保存到本地
+        var savaFile = function(data,filename) {
+            var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+            save_link.href = data;
+            save_link.download = filename;
+            var event = document.createEvent('MouseEvents');
+            event.initMouseEvent('click',true,false,window,0,0,0,0,0,false,false,false,false,0,null);
+            save_link.dispatchEvent(event);
+        };
+        var filename = 'canvas-qr-'+new Date().getDate()+'.'+type;
+        //直接用当前几号做的图片名字
+        savaFile(imgdata, filename);
+    }
+
 	window.onload = function() {
 		var $content = document.getElementById('content'),
-			$size = document.getElementById('size'),
-			$border_size = document.getElementById('border_size'),
-			$qrcodes = document.getElementById('qrcodes'),
+			// $size = document.getElementById('size'),
+			// $border_size = document.getElementById('border_size'),
 		    $btn = document.getElementById('submit');
 
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
 			var con = $content.value, 
-				size = $size.value || 8, 
-				border_size = $border_size.value || 2,
+				// size = $size.value || 8, 
+				// border_size = $border_size.value || 2,
+				size = 8, 
+				border_size = 2,
 				qrcode = window.location.protocol+'//'+window.location.host+'/qr/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
 
 			if(con == '') {
@@ -117,13 +167,13 @@ if(isset($_GET['t'])){
 				// 缓存二维码内容和图片
 				sessionStorage.setItem('qrcode', qrcode);
 				sessionStorage.setItem('qrcontent', con);
-				$qrcodes.src = qrcode;
+				draw(qrcode);
 			}
 		}
 
 		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
 		if(sessionStorage.getItem('qrcode') != null) {
-			$qrcodes.src = sessionStorage.getItem('qrcode');
+			draw(sessionStorage.getItem('qrcode'));
 		}
 		if(sessionStorage.getItem('qrcontent') != null) {
 			$content.value = sessionStorage.getItem('qrcontent');	
