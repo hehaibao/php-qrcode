@@ -36,12 +36,13 @@ if(isset($_GET['t'])){
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;}
 		.ipt:focus{border:1px solid #0074A2;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
-		#toast{width:300px;position:fixed;top:2%;right:1%;z-index:999999;background-color:rgba(0,0,0,.7);border-radius:5px;color:#fff;padding:10px 0;text-align:center;-webkit-animation: zoomOut .4s ease both;animation: zoomOut .4s ease both;}
+		#toast{width:300px;position:fixed;top:2%;left:50%;margin-left: -150px;z-index:999999;background-color:rgba(0,0,0,.7);border-radius:5px;color:#fff;padding:10px 0;text-align:center;-webkit-animation: zoomOut .4s ease both;animation: zoomOut .4s ease both;}
 		@-webkit-keyframes zoomOut { 0% { opacity: 0; -webkit-transform: scale(.6); } 100% { opacity: 1; -webkit-transform: scale(1); } }
 		@keyframes zoomOut { 0% { opacity: 0; transform: scale(.6); } 100% { opacity: 1; transform: scale(1); } }
 	</style>
 </head>
 <body>
+
 <h1 class="title tc">在线生成二维码</h1>
 <!--<pre>
 	参数说明：
@@ -63,7 +64,7 @@ if(isset($_GET['t'])){
 	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可(选填)" class="ipt" id="border_size" /></li> -->
 	<li><canvas id="qrcodes" class="dn" width="300" height="300"></canvas></li>
 	<li><input type="button" value="生成二维码" id="submit"/></li>
-	<li><a href="javascript:;" class="dn" id="download" onclick="Download('#qrcodes')">下载二维码</a></li>
+	<li><a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a></li>
 </ul>
 
 <!--js-->
@@ -71,20 +72,121 @@ if(isset($_GET['t'])){
 	var $qrcodes = document.getElementById('qrcodes'),
 		$download = document.getElementById('download'),
 		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
-		toast_timer = 0;
-	
-	// 显示提示框
-	function showToast(message, t) {
-	    var alert = document.getElementById("toast");
-	    if(alert == null){
+		toast_timer = 0,
+		qr = {};
+
+	/*
+	*  JS操作缓存
+	*  by haibao [http://www.hehaibao.com/] 
+	*  更多使用方法请看：[https://github.com/hehaibao/cacheJS]
+	**/
+	var cacheJS = {
+		errorTxt: '您的Web浏览器不支持本地存储设置。在Safari中，最常见的原因是使用“无痕浏览模式”。有些设置可能无法保存，某些功能可能无法正常工作。',	
+		/**
+		 * 存储storage单个属性
+		 * @param key 名称
+		 * @param val 值
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * **/
+		setStorage: function (key, val, type) {
+			type = type ? type : window.localStorage;
+			if(this.checkSupport()) {
+				type[key] = escape(val); 
+			} else {
+				alert(this.errorTxt);
+			}
+		},
+		/**
+		 * 读取storage单个属性
+		 * @param key 名称
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * **/
+		getStorage: function (key, type) {
+			type = type ? type : window.localStorage;
+			if(this.checkSupport()) {
+				return unescape(type[key]);
+			} else {
+				alert(this.errorTxt);
+			}
+		},
+		/**
+		 * 删除storage对象
+		 * @param key 名称
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * **/
+		delStorage: function (key, type) {
+			type = type ? type : window.localStorage;
+			if(this.checkSupport()) {
+				type[key] = '';
+				delete type[key];
+			} else {
+				alert(this.errorTxt);
+			}
+		},
+		/**
+		 * 检测是否支持localStorage或sessionStorage
+		 */
+		checkSupport: function () {
+			var testKey = 'test', storage = window.sessionStorage;
+			try {
+				storage.setItem(testKey, '1');
+				storage.removeItem(testKey);
+				return true;
+			} 
+			catch (error) {
+				return false;
+			}
+		}
+	};
+
+	qr.init = function() {
+		var $this = this;
+		var $content = document.getElementById('content'),
+			// $size = document.getElementById('size'),
+			// $border_size = document.getElementById('border_size'),
+		    $btn = document.getElementById('submit');
+
+		// 生成二维码按钮 点击事件
+		$btn.onclick = function() {
+			var protocol = 'http://',
+				con = $content.value,
+				con = con.substr(0,7).toLowerCase() == protocol ? con : protocol + con, //用户如果忘记填写协议，自动加上
+				size = 8,  // $size.value
+				border_size = 2, // $border_size.value
+				qrcode = $this.getUrlPath() +'/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
+
+			if(con == '' || con == protocol) {
+				//如果内容为空，则重置
+				$this.reset();
+			} else {
+				// 缓存二维码内容和图片
+				cacheJS.setStorage('qrcode', qrcode, sessionStorage);
+				cacheJS.setStorage('qrcontent', con, sessionStorage);
+				$this.draw(qrcode);
+			}
+		}
+
+		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
+		if(cacheJS.getStorage('qrcode', sessionStorage) !== 'undefined') {
+			$this.draw(cacheJS.getStorage('qrcode', sessionStorage));
+		}
+		if(cacheJS.getStorage('qrcontent', sessionStorage) !== 'undefined') {
+			$content.value = cacheJS.getStorage('qrcontent', sessionStorage);	
+		}
+	}
+
+	qr.showToast = function(msg, t) {
+		// 显示提示框
+		var alert = document.getElementById("toast");
+	    if(alert === null){
 	        alert =  document.createElement("div");
 	        alert.id = 'toast';
-	        alert.innerText = message;
+	        alert.innerText = msg;
 	    } else {
 	        alert.style.opacity = .9;
 	    }
 	    document.body.appendChild(alert);
-	    t = t ? t : 1000;
+	    t = t ? t : 1500;
 	    toast_timer = setTimeout(function() {
 	    	// 隐藏提示框
 	    	if(alert) {
@@ -93,34 +195,38 @@ if(isset($_GET['t'])){
 	    	}
 	    }, t);
 	}
-	
-	// 提示并重置二维码内容输入框
-	function reset() {
-		showToast('请输入二维码内容～', 1500);
-		sessionStorage.removeItem('qrcode');
-		sessionStorage.removeItem('qrcontent');
-		draw(defaultQr);
+
+	qr.reset = function() {
+		// 提示并重置二维码内容输入框
+		this.showToast('请输入二维码内容～');
+		cacheJS.delStorage('qrcode', sessionStorage);
+		cacheJS.delStorage('qrcontent', sessionStorage);
 		$qrcodes.style.display = 'none';
 		$download.style.display = 'none';
 	}
 
-	// canvas绘制二维码
-	function draw(imgSrc) {
-        if($qrcodes.getContext) {
-        	var ctx = $qrcodes.getContext('2d');
-        	var img = new Image();
+	qr.draw = function(imgSrc) {
+		// canvas绘制二维码
+		if($qrcodes.getContext) {
+			var ctx = $qrcodes.getContext('2d'),
+				img = new Image();
 	        img.onload = function() {
 	            ctx.drawImage(img, 0, 0);
-	        };
+			};
+			img.onerror = function() { 
+				qr.showToast("image error!");
+			}; 
 	        img.src = imgSrc || defaultQr;
 	        $qrcodes.style.display = 'block';
 	        $download.style.display = 'block';
-        }
-    }
+        } else {
+			this.toast('该浏览器不支持canvas..');
+		}
+	}
 
-	// 下载二维码
-	function Download(el, picType) {
-        //------------------------------------------------------------------------
+	qr.download = function(el, picType) {
+		// 下载二维码
+		//------------------------------------------------------------------------
         //1.确定图片的类型  获取到的图片格式 data:image/Png;base64,......
         var type = picType || 'png'; //你想要什么图片格式 就选什么吧, 默认png
         var d = document.querySelector(el);
@@ -144,40 +250,22 @@ if(isset($_GET['t'])){
         var filename = 'canvas-qr-'+new Date().getDate()+'.'+type;
         //直接用当前几号做的图片名字
         savaFile(imgdata, filename);
-    }
+	}
+	
+	qr.getUrlPath = function() {
+		// 获取URL地址
+		// 这部分代码就是处理标题兼容问题的。
+		// 由于在Chrome window.location.origin 属性是支持的，但是在IE11不支持，会导致无法正常翻页。
+		var loc = window.location;
+        var portStr = "";
+        if(loc.port != 80) { 
+			portStr = ":" + loc.port;
+		}
+        return loc.protocol + "//" +loc.hostname + portStr + loc.pathname;
+	}
 
 	window.onload = function() {
-		var $content = document.getElementById('content'),
-			// $size = document.getElementById('size'),
-			// $border_size = document.getElementById('border_size'),
-		    $btn = document.getElementById('submit');
-
-		// 生成二维码按钮 点击事件
-		$btn.onclick = function() {
-			var con = $content.value, 
-				// size = $size.value || 8, 
-				// border_size = $border_size.value || 2,
-				size = 8, 
-				border_size = 2,
-				qrcode = window.location.protocol+'//'+window.location.host+'/qr/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
-
-			if(con == '') {
-				reset();
-			} else {
-				// 缓存二维码内容和图片
-				sessionStorage.setItem('qrcode', qrcode);
-				sessionStorage.setItem('qrcontent', con);
-				draw(qrcode);
-			}
-		}
-
-		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
-		if(sessionStorage.getItem('qrcode') != null) {
-			draw(sessionStorage.getItem('qrcode'));
-		}
-		if(sessionStorage.getItem('qrcontent') != null) {
-			$content.value = sessionStorage.getItem('qrcontent');	
-		}
+		qr.init();
 	}
 </script>
 </body>
