@@ -11,6 +11,16 @@ Tips: 目前已改成canvas存二维码，并增加下载二维码方法；
 
 ![image](https://github.com/hehaibao/php-qrcode/blob/master/preview.gif)
 
+----------------------
+2018-05-17日更新：
+
+1 优化JS写法；
+2 新增判断有没有http协议,如果没有则自动添加；
+3 新增图片错误提示
+
+----------------------
+
+
 依赖：
 
 phpqrcode: http://phpqrcode.sourceforge.net/
