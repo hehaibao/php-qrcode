@@ -149,13 +149,16 @@ if(isset($_GET['t'])){
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
 			var protocol = 'http://',
-				con = $content.value,
-				con = con.substr(0,7).toLowerCase() == protocol ? con : protocol + con, //用户如果忘记填写协议，自动加上
+				protocol_https = 'https://',
+				con = $content.value, //用户填写的内容
+				str = con.substr(0,7).toLowerCase(),
+				str_https = con.substr(0,8).toLowerCase(),
+				con = (str == protocol || str_https == protocol_https) ? con : (str_https == protocol_https ? protocol_https : protocol) + con, //用户如果忘记填写协议，自动加上
 				size = 8,  // $size.value
 				border_size = 2, // $border_size.value
 				qrcode = $this.getUrlPath() +'/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
 
-			if(con == '' || con == protocol) {
+			if(con == '' || con == protocol || con == protocol_https) {
 				//如果内容为空，则重置
 				$this.reset();
 			} else {
