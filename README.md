@@ -28,7 +28,8 @@ Tips: 目前已改成canvas存二维码，并增加下载二维码方法；
 
     3 新增图片错误提示
     
-    4 新增local/sessionStorage检测及方法
+    4 新增local/sessionStorage检测及方法
+
 
 ----------------------
 
