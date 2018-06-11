@@ -4,14 +4,26 @@
  * */
 include "./phpqrcode.php";
 
+/*
+	参数说明：
+	
+	d: 二维码对应的网址
+	p: 二维码尺寸，可选范围1-10(具体大小和容错级别有关)（缺省值：3）
+	m: 二维码白色边框尺寸,缺省值: 0px
+	e: 容错级别(errorLevel)，可选参数如下(缺省值 L)：
+	 - L水平    7%的字码可被修正
+	 - M水平    15%的字码可被修正
+	 - Q水平    25%的字码可被修正
+	 - H水平    30%的字码可被修正
+*/
 $content = $_GET["d"]; 
 $errorLevel = isset($_GET["e"]) ? $_GET["e"] : 'L'; 
 $PointSize  = $_GET["p"]; 
 $margin = $_GET["m"];
 preg_match('/http:\/\/([\w\W]*?)\//si', $content, $matches);
 
-if(isset($_GET['t'])){ 	
-	 QRcode::png($content, false, $errorLevel, $PointSize, $margin);
+if(isset($_GET['t'])){	
+	QRcode::png($content, false, $errorLevel, $PointSize, $margin);
 }
 ?>
 <!doctype html>
@@ -32,7 +44,7 @@ if(isset($_GET['t'])){
 		.dn{display: none;}
 		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:5% auto 20px;}
 		#qrcode li{padding:10px 0;}
-		#qrcodes{margin: 0 auto;}
+		#qrcodes{margin: 0 auto;background-color: #fff;}
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;}
 		.ipt:focus{border:1px solid #0074A2;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
@@ -44,24 +56,12 @@ if(isset($_GET['t'])){
 <body>
 
 <h1 class="title tc">在线生成二维码</h1>
-<!--<pre>
-	参数说明：
-	
-	d: 二维码对应的网址
-	p: 二维码尺寸，可选范围1-10(具体大小和容错级别有关)（缺省值：3）
-	m: 二维码白色边框尺寸,缺省值: 0px
-	e: 容错级别(errorLevel)，可选参数如下(缺省值 L)：
-	 - L水平    7%的字码可被修正
-	 - M水平    15%的字码可被修正
-	 - Q水平    25%的字码可被修正
-	 - H水平    30%的字码可被修正
-</pre>-->
 
 <!--参数表单-->
 <ul id="qrcode" class="tc">
 	<li><input type="text" value="" placeholder="请输入二维码内容，文本／链接(必填)" class="ipt" id="content" required /></li>
-	<!-- <li><input type="text" value="" placeholder="请输入二维码尺寸，1-10之间(选填)" class="ipt" id="size" /></li>
-	<li><input type="text" value="" placeholder="请输入二维码白色边框尺寸，整数即可(选填)" class="ipt" id="border_size" /></li> -->
+	<li><input type="text" value="" placeholder="二维码尺寸，1-10之间(选填)" readonly class="ipt" id="size" /></li>
+	<li><input type="text" value="" placeholder="二维码白色边框尺寸，整数即可(选填)" readonly class="ipt" id="border_size" /></li>
 	<li><canvas id="qrcodes" class="dn" width="300" height="300"></canvas></li>
 	<li><input type="button" value="生成二维码" id="submit"/></li>
 	<li><a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a></li>
@@ -142,31 +142,32 @@ if(isset($_GET['t'])){
 	qr.init = function() {
 		var $this = this;
 		var $content = document.getElementById('content'),
-			// $size = document.getElementById('size'),
-			// $border_size = document.getElementById('border_size'),
+			$size = document.getElementById('size'),
+			$border_size = document.getElementById('border_size'),
 		    $btn = document.getElementById('submit');
 
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
+			$this.reset(); //每次点击都先重置
 			var protocol = 'http://',
 				protocol_https = 'https://',
 				con = $content.value, //用户填写的内容
 				str = con.substr(0,7).toLowerCase(),
 				str_https = con.substr(0,8).toLowerCase(),
 				con = (str == protocol || str_https == protocol_https) ? con : (str_https == protocol_https ? protocol_https : protocol) + con, //用户如果忘记填写协议，自动加上
-				size = 8,  // $size.value
-				border_size = 2, // $border_size.value
-				qrcode = $this.getUrlPath() +'/index.php?m='+border_size+'&e=L&p='+size+'&d='+con+'&t='+new Date();
+				size = $size.value || 6,
+				border_size = $border_size.value || 1,
+				qrcode = $this.getUrlPath() +'index.php?m='+border_size+'&e=L&p='+size+'&d='+encodeURIComponent(con)+'&t='+new Date();
 
 			if(con == '' || con == protocol || con == protocol_https) {
 				//如果内容为空，则重置
-				$this.reset();
-			} else {
-				// 缓存二维码内容和图片
-				cacheJS.setStorage('qrcode', qrcode, sessionStorage);
-				cacheJS.setStorage('qrcontent', con, sessionStorage);
-				$this.draw(qrcode);
-			}
+				$this.showToast('请输入二维码内容～');
+				return;
+			} 
+			// 缓存二维码内容和图片
+			cacheJS.setStorage('qrcode', qrcode, sessionStorage);
+			cacheJS.setStorage('qrcontent', con, sessionStorage);
+			$this.draw(qrcode);
 		}
 
 		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
@@ -200,12 +201,11 @@ if(isset($_GET['t'])){
 	}
 
 	qr.reset = function() {
-		// 提示并重置二维码内容输入框
-		this.showToast('请输入二维码内容～');
-		cacheJS.delStorage('qrcode', sessionStorage);
-		cacheJS.delStorage('qrcontent', sessionStorage);
+		// 重置二维码内容输入框
 		$qrcodes.style.display = 'none';
 		$download.style.display = 'none';
+		cacheJS.delStorage('qrcode', sessionStorage);
+		cacheJS.delStorage('qrcontent', sessionStorage);
 	}
 
 	qr.draw = function(imgSrc) {
@@ -213,6 +213,7 @@ if(isset($_GET['t'])){
 		if($qrcodes.getContext) {
 			var ctx = $qrcodes.getContext('2d'),
 				img = new Image();
+			ctx.clearRect(0,0,$qrcodes.width,$qrcodes.height); //清空画布
 	        img.onload = function() {
 	            ctx.drawImage(img, 0, 0);
 			};
