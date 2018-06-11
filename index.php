@@ -212,10 +212,17 @@ if(isset($_GET['t'])){
 		// canvas绘制二维码
 		if($qrcodes.getContext) {
 			var ctx = $qrcodes.getContext('2d'),
-				img = new Image();
-			ctx.clearRect(0,0,$qrcodes.width,$qrcodes.height); //清空画布
+				img = new Image(),
+				qrWidth = $qrcodes.width,
+				qrHeight = $qrcodes.height;
+			ctx.clearRect(0,0,qrWidth,qrHeight); //清空画布
 	        img.onload = function() {
-	            ctx.drawImage(img, 0, 0);
+				//根据二维码图片宽高，计算居中 展示
+				var imgW = img.width,
+					imgH = img.height,
+					posLeft = imgW >= qrWidth ? 0: (qrWidth - imgW) / 2,
+					posTop = imgH >= qrHeight ? 0 : (qrHeight - imgH) / 2;
+	            ctx.drawImage(img, posLeft, posTop);
 			};
 			img.onerror = function() { 
 				qr.showToast("image error!");
