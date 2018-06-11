@@ -43,10 +43,14 @@ if(isset($_GET['t'])){
 		.tc{text-align:center;}
 		.dn{display: none;}
 		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:5% auto 20px;}
+		#qrcode{width: 300px;margin: 0 auto;}
 		#qrcode li{padding:10px 0;}
+		#qrcode li > span{display: block;text-align: left;margin-bottom: 3px;}
+		#size{width: 300px;height: 35px;background-color: #fff;border: 1px solid #ccc;}
 		#qrcodes{margin: 0 auto;background-color: #fff;}
-		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;}
+		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;border-radius: 4px;}
 		.ipt:focus{border:1px solid #0074A2;}
+		.ipt[readonly]{cursor: not-allowed;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
 		#toast{width:300px;position:fixed;top:2%;left:50%;margin-left: -150px;z-index:999999;background-color:rgba(0,0,0,.7);border-radius:5px;color:#fff;padding:10px 0;text-align:center;-webkit-animation: zoomOut .4s ease both;animation: zoomOut .4s ease both;}
 		@-webkit-keyframes zoomOut { 0% { opacity: 0; -webkit-transform: scale(.6); } 100% { opacity: 1; -webkit-transform: scale(1); } }
@@ -59,18 +63,44 @@ if(isset($_GET['t'])){
 
 <!--参数表单-->
 <ul id="qrcode" class="tc">
-	<li><input type="text" value="" placeholder="请输入二维码内容，文本／链接(必填)" class="ipt" id="content" required /></li>
-	<li><input type="text" value="" placeholder="二维码尺寸，1-10之间(选填)" readonly class="ipt" id="size" /></li>
-	<li><input type="text" value="" placeholder="二维码白色边框尺寸，整数即可(选填)" readonly class="ipt" id="border_size" /></li>
-	<li><canvas id="qrcodes" class="dn" width="300" height="300"></canvas></li>
-	<li><input type="button" value="生成二维码" id="submit"/></li>
-	<li><a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a></li>
+	<li>
+		<span>二维码内容 <font color="red">*</font></span>
+		<input type="text" value="" placeholder="请输入二维码内容，文本／链接" class="ipt" id="content" required />
+	</li>
+	<li>
+		<span>二维码尺寸</span>
+		<select name="size" id="size">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6" selected>6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+		</select>
+	</li>
+	<li>
+		<span>白边框尺寸</span>
+		<input type="text" value="" placeholder="二维码白色边框尺寸，整数即可(选填)" readonly class="ipt" id="border_size" />
+	</li>
+	<li>
+		<canvas id="qrcodes" class="dn" width="300" height="300"></canvas>
+	</li>
+	<li>
+		<input type="button" value="生成二维码" id="submit"/>
+	</li>
+	<li>
+		<a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a>
+	</li>
 </ul>
 
 <!--js-->
 <script>
-	var $qrcodes = document.getElementById('qrcodes'),
-		$download = document.getElementById('download'),
+	var $qrcodes = document.getElementById('qrcodes'), //canvas DOM
+		$download = document.getElementById('download'), //download DOM
 		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
 		toast_timer = 0,
 		qr = {};
@@ -162,12 +192,19 @@ if(isset($_GET['t'])){
 			if(con == '' || con == protocol || con == protocol_https) {
 				//如果内容为空，则重置
 				$this.showToast('请输入二维码内容～');
+				//输入框焦点改变
+				$content.focus();
 				return;
 			} 
 			// 缓存二维码内容和图片
 			cacheJS.setStorage('qrcode', qrcode, sessionStorage);
 			cacheJS.setStorage('qrcontent', con, sessionStorage);
 			$this.draw(qrcode);
+		}
+
+		// 二维码尺寸选择
+		$size.onchange = function() {
+			$btn.onclick();
 		}
 
 		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
