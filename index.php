@@ -33,6 +33,7 @@ if(isset($_GET['t'])){
 	<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
 	<meta name="Keywords" content="在线生成二维码"/>
 	<title>在线二维码API接口| 何海宝的博客</title>
+	<!-- css -->
 	<style>
 		html,body{margin:0;padding:0;font-size:14px;font-family:"microsoft yahei",arial;background-color:#F2F2F2;}
 		ul{margin:0;padding:0;}
@@ -46,7 +47,6 @@ if(isset($_GET['t'])){
 		#qrcode{width: 300px;margin: 0 auto;}
 		#qrcode li{padding:10px 0;}
 		#qrcode li > span{display: block;text-align: left;margin-bottom: 3px;}
-		#size{width: 300px;height: 35px;background-color: #fff;border: 1px solid #ccc;}
 		#qrcodes{margin: 0 auto;background-color: #fff;}
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;border-radius: 4px;}
 		.ipt:focus{border:1px solid #0074A2;}
@@ -68,26 +68,15 @@ if(isset($_GET['t'])){
 		<input type="text" value="" placeholder="请输入二维码内容，文本／链接" class="ipt" id="content" required />
 	</li>
 	<li>
-		<span>二维码尺寸</span>
-		<select name="size" id="size">
-			<option value="1">1</option>
-			<option value="2">2</option>
-			<option value="3">3</option>
-			<option value="4">4</option>
-			<option value="5">5</option>
-			<option value="6" selected>6</option>
-			<option value="7">7</option>
-			<option value="8">8</option>
-			<option value="9">9</option>
-			<option value="10">10</option>
-		</select>
-	</li>
-	<li>
 		<span>白边框尺寸</span>
-		<input type="text" value="" placeholder="二维码白色边框尺寸，整数即可(选填)" readonly class="ipt" id="border_size" />
+		<input type="text" value="2" placeholder="二维码白色边框尺寸，1-9整数即可(选填)" onKeyUp="value=value.replace(/[^\d]/g,'')" maxlength="1" class="ipt" id="border_size" />
 	</li>
 	<li>
-		<canvas id="qrcodes" class="dn" width="300" height="300"></canvas>
+		<span>自定义版权</span>
+		<input type="text" value="" placeholder="输入文字，最多8个字符(选填)" maxlength="8" class="ipt" id="copyright" />
+	</li>
+	<li>
+		<canvas id="qrcodes" class="dn" width="300" height="300">您的浏览器不支持canvas标签。</canvas>
 	</li>
 	<li>
 		<input type="button" value="生成二维码" id="submit"/>
@@ -99,8 +88,12 @@ if(isset($_GET['t'])){
 
 <!--js-->
 <script>
-	var $qrcodes = document.getElementById('qrcodes'), //canvas DOM
-		$download = document.getElementById('download'), //download DOM
+	var getID = function(el) {
+		return document.getElementById(el);
+	};
+
+	var $qrcodes = getID('qrcodes'), //canvas DOM
+		$download = getID('download'), //download DOM
 		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
 		toast_timer = 0,
 		qr = {};
@@ -170,11 +163,11 @@ if(isset($_GET['t'])){
 	};
 
 	qr.init = function() {
-		var $this = this;
-		var $content = document.getElementById('content'),
-			$size = document.getElementById('size'),
-			$border_size = document.getElementById('border_size'),
-		    $btn = document.getElementById('submit');
+		var $this = this,
+			$content = getID('content'),
+			$border_size = getID('border_size'),
+			$copyright = getID('copyright'),
+		    $btn = getID('submit');
 
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
@@ -185,8 +178,9 @@ if(isset($_GET['t'])){
 				str = con.substr(0,7).toLowerCase(),
 				str_https = con.substr(0,8).toLowerCase(),
 				con = (str == protocol || str_https == protocol_https) ? con : (str_https == protocol_https ? protocol_https : protocol) + con, //用户如果忘记填写协议，自动加上
-				size = $size.value || 6,
-				border_size = $border_size.value || 1,
+				size = 5, //二维码尺寸
+				border_size = $border_size && $border_size.value || 2, //边框尺寸
+				copyright = $copyright && $copyright.value || '', //自定义版权文字
 				qrcode = $this.getUrlPath() +'index.php?m='+border_size+'&e=L&p='+size+'&d='+encodeURIComponent(con)+'&t='+new Date();
 
 			if(con == '' || con == protocol || con == protocol_https) {
@@ -196,29 +190,33 @@ if(isset($_GET['t'])){
 				$content.focus();
 				return;
 			} 
-			// 缓存二维码内容和图片
+			// 缓存二维码内容,图片,文字,边框
 			cacheJS.setStorage('qrcode', qrcode, sessionStorage);
 			cacheJS.setStorage('qrcontent', con, sessionStorage);
-			$this.draw(qrcode);
-		}
-
-		// 二维码尺寸选择
-		$size.onchange = function() {
-			$btn.onclick();
+			cacheJS.setStorage('qrcopyright', copyright, sessionStorage);
+			cacheJS.setStorage('qrbordersize', border_size, sessionStorage);
+			$this.draw(qrcode, copyright);
 		}
 
 		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
+		if(cacheJS.getStorage('qrcopyright', sessionStorage) !== 'undefined') {
+			$copyright.value = cacheJS.getStorage('qrcopyright', sessionStorage);	
+		}
 		if(cacheJS.getStorage('qrcode', sessionStorage) !== 'undefined') {
-			$this.draw(cacheJS.getStorage('qrcode', sessionStorage));
+			$this.draw(cacheJS.getStorage('qrcode', sessionStorage), $copyright.value);
 		}
 		if(cacheJS.getStorage('qrcontent', sessionStorage) !== 'undefined') {
 			$content.value = cacheJS.getStorage('qrcontent', sessionStorage);	
 		}
+		if(cacheJS.getStorage('qrbordersize', sessionStorage) !== 'undefined') {
+			$border_size.value = cacheJS.getStorage('qrbordersize', sessionStorage);	
+		}
+		
 	}
 
 	qr.showToast = function(msg, t) {
 		// 显示提示框
-		var alert = document.getElementById("toast");
+		var alert = getID("toast");
 	    if(alert === null){
 	        alert =  document.createElement("div");
 	        alert.id = 'toast';
@@ -245,7 +243,7 @@ if(isset($_GET['t'])){
 		cacheJS.delStorage('qrcontent', sessionStorage);
 	}
 
-	qr.draw = function(imgSrc) {
+	qr.draw = function(imgSrc, copyright) {
 		// canvas绘制二维码
 		if($qrcodes.getContext) {
 			var ctx = $qrcodes.getContext('2d'),
@@ -254,12 +252,16 @@ if(isset($_GET['t'])){
 				qrHeight = $qrcodes.height;
 			ctx.clearRect(0,0,qrWidth,qrHeight); //清空画布
 	        img.onload = function() {
-				//根据二维码图片宽高，计算居中 展示
-				var imgW = img.width,
-					imgH = img.height,
-					posLeft = imgW >= qrWidth ? 0: (qrWidth - imgW) / 2,
-					posTop = imgH >= qrHeight ? 0 : (qrHeight - imgH) / 2;
-	            ctx.drawImage(img, posLeft, posTop);
+				ctx.drawImage(img, 0, 0, qrWidth, qrHeight);
+				
+				//有设置版权文字的话，就绘制文字
+				if(copyright) {
+					ctx.fillStyle = '#999';
+					ctx.font = '14px Microsoft YaHei, sans-serif';
+					ctx.textBaseline = "middle";
+					ctx.textAlign = 'center';
+					ctx.fillText(copyright , qrWidth/2, qrHeight - 10);
+				}
 			};
 			img.onerror = function() { 
 				qr.showToast("image error!");
