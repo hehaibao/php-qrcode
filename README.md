@@ -1,8 +1,8 @@
 # php-qrcode 在线生成二维码
 
-基于phpqrcode+js实现的在线生成二维码工具，个人已使用许久。
+基于phpqrcode+js实现的在线生成二维码工具(canvas版)，个人已使用许久。
 
--- (Tips: 目前已改成canvas存二维码，并增加下载二维码方法)
+目前支持的功能：随意更换颜色、可自定义版权文案、可一键下载二维码，支持页面刷新等。
 
 ### 演示地址： 
 
@@ -21,6 +21,7 @@ http://www.hehaibao.com/qr
 2018-07-18更新：
 
     1 新增颜色选择器，使得二维码颜色可修改
+    
     2 对纯白色，纯黑色做兼容处理
     
     
@@ -66,3 +67,15 @@ http://www.hehaibao.com/qr
 ### 依赖：
 
 phpqrcode: http://phpqrcode.sourceforge.net/
+
+jscolor: http://jscolor.com/ (Tips: 如果需要用更改颜色功能的话)
+
+### 协议
+
+MIT
+
+### 鸣谢
+
+感谢phpqrcode和jscolor开源技术及开发人员。
+
+如果小工具对您有作用，请star一下已示鼓励！谢谢！
