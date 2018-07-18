@@ -282,18 +282,17 @@ if(isset($_GET['t'])){
 				ctx.drawImage(img, 0, 0, qrWidth, qrHeight);
 
 				//设置颜色
-				if(qr.color != '0,0,0' || qr.color != '255,255,255') {
-					var imageData = ctx.getImageData(0, 0, qrWidth, qrHeight);
-					var pxData = imageData.data;  //获取每一个像素
-					var qrcolor = qr.color.split(','); //选择的颜色 rgb
-					for(var i = 0, len = pxData.length; i < len; i += 4) { 
-						//改成对应的rgb颜色
-						pxData[i] = pxData[i] + qrcolor[0]; 
-						pxData[i+1] = pxData[i+1] + qrcolor[1]; 
-						pxData[i+2] = pxData[i+2] + qrcolor[2]; 
-					}  
-					ctx.putImageData(imageData,0,0);
-				}
+				qr.color = qr.color == '0,0,0' || qr.color == '255,255,255' ? '0,0,0' : qr.color;
+				var imageData = ctx.getImageData(0, 0, qrWidth, qrHeight);
+				var pxData = imageData.data;  //获取每一个像素
+				var qrcolor = qr.color.split(','); //选择的颜色 rgb
+				for(var i = 0, len = pxData.length; i < len; i += 4) { 
+					//改成对应的rgb颜色
+					pxData[i] = pxData[i] + qrcolor[0]; 
+					pxData[i+1] = pxData[i+1] + qrcolor[1]; 
+					pxData[i+2] = pxData[i+2] + qrcolor[2]; 
+				}  
+				ctx.putImageData(imageData,0,0);
 
 				//有设置版权文字的话，就绘制文字
 				if(copyright) {
