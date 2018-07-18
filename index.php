@@ -72,6 +72,10 @@ if(isset($_GET['t'])){
 		<input type="text" value="2" placeholder="二维码白色边框尺寸，1-9整数即可(选填)" onKeyUp="value=value.replace(/[^\d]/g,'')" maxlength="1" class="ipt" id="border_size" />
 	</li>
 	<li>
+		<span>二维码颜色</span>
+		<input type="text" placeholder="选择二维码颜色(选填)" class="ipt jscolor {closable:true,closeText:'关闭',onFineChange:'updateColor(this)'}" maxlength="6" readonly disabled value="000000" id="color">
+	</li>
+	<li>
 		<span>自定义版权</span>
 		<input type="text" value="" placeholder="输入文字，最多8个字符(选填)" maxlength="8" class="ipt" id="copyright" />
 	</li>
@@ -87,6 +91,7 @@ if(isset($_GET['t'])){
 </ul>
 
 <!--js-->
+<script src="jscolor.js"></script>
 <script>
 	var getID = function(el) {
 		return document.getElementById(el);
@@ -94,9 +99,16 @@ if(isset($_GET['t'])){
 
 	var $qrcodes = getID('qrcodes'), //canvas DOM
 		$download = getID('download'), //download DOM
+		$color = getID('color'),
 		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
 		toast_timer = 0,
 		qr = {};
+
+	//获取选中的颜色，得到rgb值
+	function updateColor(picker) {
+		qr.color = Math.round(picker.rgb[0])+','+Math.round(picker.rgb[1])+','+Math.round(picker.rgb[2]);
+		// $color.jscolor.hide(); //关闭取色器
+	}
 
 	/*
 	*  JS操作缓存
@@ -109,10 +121,10 @@ if(isset($_GET['t'])){
 		 * 存储storage单个属性
 		 * @param key 名称
 		 * @param val 值
-		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认sessionStorage
 		 * **/
 		setStorage: function (key, val, type) {
-			type = type ? type : window.localStorage;
+			type = type ? type : window.sessionStorage;
 			if(this.checkSupport()) {
 				type[key] = escape(val); 
 			} else {
@@ -122,10 +134,10 @@ if(isset($_GET['t'])){
 		/**
 		 * 读取storage单个属性
 		 * @param key 名称
-		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认sessionStorage
 		 * **/
 		getStorage: function (key, type) {
-			type = type ? type : window.localStorage;
+			type = type ? type : window.sessionStorage;
 			if(this.checkSupport()) {
 				return unescape(type[key]);
 			} else {
@@ -135,10 +147,10 @@ if(isset($_GET['t'])){
 		/**
 		 * 删除storage对象
 		 * @param key 名称
-		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认localStorage
+		 * @param type [object] 类型[可选值sessionStorage/localStorage]，不填则默认sessionStorage
 		 * **/
 		delStorage: function (key, type) {
-			type = type ? type : window.localStorage;
+			type = type ? type : window.sessionStorage;
 			if(this.checkSupport()) {
 				type[key] = '';
 				delete type[key];
@@ -167,7 +179,7 @@ if(isset($_GET['t'])){
 			$content = getID('content'),
 			$border_size = getID('border_size'),
 			$copyright = getID('copyright'),
-		    $btn = getID('submit');
+			$btn = getID('submit');
 
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
@@ -181,6 +193,7 @@ if(isset($_GET['t'])){
 				size = 5, //二维码尺寸
 				border_size = $border_size && $border_size.value || 2, //边框尺寸
 				copyright = $copyright && $copyright.value || '', //自定义版权文字
+				color = $color && $color.value || '000000', //自定义二维码颜色
 				qrcode = $this.getUrlPath() +'index.php?m='+border_size+'&e=L&p='+size+'&d='+encodeURIComponent(con)+'&t='+new Date();
 
 			if(con == '' || con == protocol || con == protocol_https) {
@@ -191,25 +204,34 @@ if(isset($_GET['t'])){
 				return;
 			} 
 			// 缓存二维码内容,图片,文字,边框
-			cacheJS.setStorage('qrcode', qrcode, sessionStorage);
-			cacheJS.setStorage('qrcontent', con, sessionStorage);
-			cacheJS.setStorage('qrcopyright', copyright, sessionStorage);
-			cacheJS.setStorage('qrbordersize', border_size, sessionStorage);
+			cacheJS.setStorage('qrcode', qrcode);
+			cacheJS.setStorage('qrcontent', con);
+			cacheJS.setStorage('qrcopyright', copyright);
+			cacheJS.setStorage('qrcolor', color);
+			cacheJS.setStorage('qrcolorrgb', qr.color);
+			cacheJS.setStorage('qrbordersize', border_size);
 			$this.draw(qrcode, copyright);
 		}
 
 		// 如果有缓存(二维码内容和图片)，则读取缓存的值（目的：为了刷新页面也会存在）
-		if(cacheJS.getStorage('qrcopyright', sessionStorage) !== 'undefined') {
-			$copyright.value = cacheJS.getStorage('qrcopyright', sessionStorage);	
+		if(cacheJS.getStorage('qrcopyright') !== 'undefined') {
+			$copyright.value = cacheJS.getStorage('qrcopyright');	
 		}
-		if(cacheJS.getStorage('qrcode', sessionStorage) !== 'undefined') {
-			$this.draw(cacheJS.getStorage('qrcode', sessionStorage), $copyright.value);
+		if(cacheJS.getStorage('qrcolor') !== 'undefined') {
+			$color.value = cacheJS.getStorage('qrcolor');
+			$color.style.backgroundColor = '#' + $color.value;
 		}
-		if(cacheJS.getStorage('qrcontent', sessionStorage) !== 'undefined') {
-			$content.value = cacheJS.getStorage('qrcontent', sessionStorage);	
+		if(cacheJS.getStorage('qrcolorrgb') !== 'undefined') {
+			qr.color = cacheJS.getStorage('qrcolorrgb');	
 		}
-		if(cacheJS.getStorage('qrbordersize', sessionStorage) !== 'undefined') {
-			$border_size.value = cacheJS.getStorage('qrbordersize', sessionStorage);	
+		if(cacheJS.getStorage('qrcode') !== 'undefined') {
+			$this.draw(cacheJS.getStorage('qrcode'), $copyright.value);
+		}
+		if(cacheJS.getStorage('qrcontent') !== 'undefined') {
+			$content.value = cacheJS.getStorage('qrcontent');	
+		}
+		if(cacheJS.getStorage('qrbordersize') !== 'undefined') {
+			$border_size.value = cacheJS.getStorage('qrbordersize');	
 		}
 		
 	}
@@ -239,8 +261,12 @@ if(isset($_GET['t'])){
 		// 重置二维码内容输入框
 		$qrcodes.style.display = 'none';
 		$download.style.display = 'none';
-		cacheJS.delStorage('qrcode', sessionStorage);
-		cacheJS.delStorage('qrcontent', sessionStorage);
+		cacheJS.delStorage('qrcode');
+		cacheJS.delStorage('qrcontent');
+		cacheJS.delStorage('qrcopyright');
+		cacheJS.delStorage('qrbordersize');
+		cacheJS.delStorage('qrcolor');
+		cacheJS.delStorage('qrcolorrgb');
 	}
 
 	qr.draw = function(imgSrc, copyright) {
@@ -251,9 +277,24 @@ if(isset($_GET['t'])){
 				qrWidth = $qrcodes.width,
 				qrHeight = $qrcodes.height;
 			ctx.clearRect(0,0,qrWidth,qrHeight); //清空画布
+
 	        img.onload = function() {
 				ctx.drawImage(img, 0, 0, qrWidth, qrHeight);
-				
+
+				//设置颜色
+				if(qr.color != '0,0,0') {
+					var imageData = ctx.getImageData(0, 0, qrWidth, qrHeight);
+					var pxData = imageData.data;  //获取每一个像素
+					var qrcolor = qr.color.split(','); //选择的颜色 rgb
+					for(var i = 0, len = pxData.length; i < len; i += 4) { 
+						//改成对应的rgb颜色
+						pxData[i] = pxData[i] + qrcolor[0]; 
+						pxData[i+1] = pxData[i+1] + qrcolor[1]; 
+						pxData[i+2] = pxData[i+2] + qrcolor[2]; 
+					}  
+					ctx.putImageData(imageData,0,0);
+				}
+
 				//有设置版权文字的话，就绘制文字
 				if(copyright) {
 					ctx.fillStyle = '#999';
@@ -266,6 +307,7 @@ if(isset($_GET['t'])){
 			img.onerror = function() { 
 				qr.showToast("image error!");
 			}; 
+
 	        img.src = imgSrc || defaultQr;
 	        $qrcodes.style.display = 'block';
 	        $download.style.display = 'block';
@@ -318,5 +360,10 @@ if(isset($_GET['t'])){
 		qr.init();
 	}
 </script>
+
+<!-- cnzz -->
+<div style="display:none;">
+<script type="text/javascript" id="cnzz">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1253289748'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s9.cnzz.com/stat.php%3Fid%3D1253289748%26show%3Dpic2' type='text/javascript'%3E%3C/script%3E"));</script>
+</div>
 </body>
 </html>
