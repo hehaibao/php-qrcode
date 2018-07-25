@@ -58,7 +58,6 @@ if(isset($_GET['t'])){
 	</style>
 </head>
 <body>
-
 <h1 class="title tc">在线生成二维码</h1>
 
 <!--参数表单-->
@@ -338,8 +337,7 @@ if(isset($_GET['t'])){
             event.initMouseEvent('click',true,false,window,0,0,0,0,0,false,false,false,false,0,null);
             save_link.dispatchEvent(event);
         };
-        var filename = 'canvas-qr-'+new Date().getDate()+'.'+type;
-        //直接用当前几号做的图片名字
+        var filename = 'canvas-qr-'+new Date().getTime()+'.'+type; //用当前时间戳做为图片名字
         savaFile(imgdata, filename);
 	}
 	
