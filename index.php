@@ -18,7 +18,7 @@ include "./phpqrcode.php";
 */
 $content = $_GET["d"]; 
 $errorLevel = isset($_GET["e"]) ? $_GET["e"] : 'L'; 
-$PointSize  = $_GET["p"]; 
+$PointSize = $_GET["p"]; 
 $margin = $_GET["m"];
 preg_match('/http:\/\/([\w\W]*?)\//si', $content, $matches);
 
@@ -31,8 +31,9 @@ if(isset($_GET['t'])){
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
-	<meta name="Keywords" content="在线生成二维码"/>
-	<title>在线二维码API接口| 何海宝的博客</title>
+	<meta name="Keywords" content="在线生成二维码，PHP，QR"/>
+	<meta name="author" content="haibao">
+	<title>在线生成二维码</title>
 	<!-- css -->
 	<style>
 		html,body{margin:0;padding:0;font-size:14px;font-family:"microsoft yahei",arial;background-color:#F2F2F2;}
@@ -40,17 +41,23 @@ if(isset($_GET['t'])){
 		li{list-style:none;}
 		input{border:0 none;}
 		input:focus{outline:none;}
-		pre{font-size:14px;line-height:20px;}
+		select{border:1px solid #ccc;outline: none;width: 100%;height: 34px;line-height: 34px;appearance: none;-webkit-appearance: none;-moz-appearance: none;padding-left: 15px!important}
 		.tc{text-align:center;}
 		.dn{display: none;}
+		.pr{position: relative;}
 		.title{letter-spacing:3px;text-shadow:0 0 2px #999;margin:5% auto 20px;}
-		#qrcode{width: 300px;margin: 0 auto;}
+		#qrcode{width: 300px;margin: auto auto 20px;}
 		#qrcode li{padding:10px 0;}
 		#qrcode li > span{display: block;text-align: left;margin-bottom: 3px;}
 		#qrcodes{margin: 0 auto;background-color: #fff;}
 		.ipt{padding:8px 10px;width:280px;font-size:14px;border:1px solid #ccc;border-radius: 4px;}
 		.ipt:focus{border:1px solid #0074A2;}
 		.ipt[readonly]{cursor: not-allowed;}
+		.ipt#content{padding-left: 70px;width: 220px;}
+		#types{width: 60px;padding: 0;position: absolute;top: 33px;left: 0;z-index: 2;}
+		#qr-btns{position:absolute;top:10px;right:0;z-index:3;}
+		#qr-btns a{float:left;margin-left: 10px;}
+		#qr-btns a#reset{color: #999;}
 		#submit{width:300px;padding:10px 0;background-color:#0074A2;color:#fff;font-size:16px;border-radius:4px;cursor:pointer;letter-spacing:2px;}
 		#toast{width:300px;position:fixed;top:2%;left:50%;margin-left: -150px;z-index:999999;background-color:rgba(0,0,0,.7);border-radius:5px;color:#fff;padding:10px 0;text-align:center;-webkit-animation: zoomOut .4s ease both;animation: zoomOut .4s ease both;}
 		@-webkit-keyframes zoomOut { 0% { opacity: 0; -webkit-transform: scale(.6); } 100% { opacity: 1; -webkit-transform: scale(1); } }
@@ -58,34 +65,53 @@ if(isset($_GET['t'])){
 	</style>
 </head>
 <body>
+
 <h1 class="title tc">在线生成二维码</h1>
+<p class="tc">
+	<iframe id="starbutton" src="https://ghbtns.com/github-btn.html?user=hehaibao&repo=php-qrcode&type=star&count=true" frameborder="0" scrolling="0" width="120px" height="20px"></iframe>
+</p>
 
 <!--参数表单-->
 <ul id="qrcode" class="tc">
-	<li>
+	<li class="pr">
 		<span>二维码内容 <font color="red">*</font></span>
-		<input type="text" value="" placeholder="请输入二维码内容，文本／链接" class="ipt" id="content" required />
+		<select name="type" id="types" class="ipt">
+			<option value="0" selected>网址</option>
+			<option value="1">文本</option>
+		</select>
+		<input type="text" value="" placeholder="请输入二维码内容" class="ipt" id="content" required />
 	</li>
 	<li>
 		<span>白边框尺寸</span>
-		<input type="text" value="2" placeholder="二维码白色边框尺寸，1-9整数即可(选填)" onKeyUp="value=value.replace(/[^\d]/g,'')" maxlength="1" class="ipt" id="border_size" />
+		<select name="border_size" id="border_size">
+			<option value="1">1</option>
+			<option value="2" selected>2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+		</select>
 	</li>
 	<li>
 		<span>二维码颜色</span>
-		<input type="text" placeholder="选择二维码颜色(选填)" class="ipt jscolor {closable:true,closeText:'关闭',onFineChange:'updateColor(this)'}" maxlength="6" readonly disabled value="000000" id="color">
+		<input type="text" id="color" class="ipt jscolor {closable:true,closeText:'关闭',onFineChange:'updateColor(this)'}" readonly value="000000">
 	</li>
 	<li>
 		<span>自定义版权</span>
 		<input type="text" value="" placeholder="输入文字，最多8个字符(选填)" maxlength="8" class="ipt" id="copyright" />
 	</li>
-	<li>
+	<li class="pr">
 		<canvas id="qrcodes" class="dn" width="300" height="300">您的浏览器不支持canvas标签。</canvas>
+		<div id="qr-btns">
+			<a href="javascript:;" id="reset" onclick="qr.reset()">重置</a> 
+			<a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a>
+		</div>
 	</li>
 	<li>
 		<input type="button" value="生成二维码" id="submit"/>
-	</li>
-	<li>
-		<a href="javascript:;" class="dn" id="download" onclick="qr.download('#qrcodes')">下载二维码</a>
 	</li>
 </ul>
 
@@ -98,6 +124,11 @@ if(isset($_GET['t'])){
 
 	var $qrcodes = getID('qrcodes'), //canvas DOM
 		$download = getID('download'), //download DOM
+		$types = getID('types'),
+		$content = getID('content'),
+		$border_size = getID('border_size'),
+		$copyright = getID('copyright'),
+		$btn = getID('submit')
 		$color = getID('color'),
 		defaultQr = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==', // 默认二维码图片
 		toast_timer = 0,
@@ -106,6 +137,10 @@ if(isset($_GET['t'])){
 	//获取选中的颜色，得到rgb值
 	function updateColor(picker) {
 		qr.color = Math.round(picker.rgb[0])+','+Math.round(picker.rgb[1])+','+Math.round(picker.rgb[2]);
+		if ($content.value) {
+			// 如果有值，则自动更新二维码
+			$btn.click();
+		}
 		// $color.jscolor.hide(); //关闭取色器
 	}
 
@@ -174,21 +209,16 @@ if(isset($_GET['t'])){
 	};
 
 	qr.init = function() {
-		var $this = this,
-			$content = getID('content'),
-			$border_size = getID('border_size'),
-			$copyright = getID('copyright'),
-			$btn = getID('submit');
+		var $this = this;
 
 		// 生成二维码按钮 点击事件
 		$btn.onclick = function() {
-			$this.reset(); //每次点击都先重置
-			var protocol = 'http://',
-				protocol_https = 'https://',
+			var protocol = 'http://', protocol_https = 'https://',
+				tp = $types.value, //当然选择的类型，默认：网址
 				con = $content.value, //用户填写的内容
 				str = con.substr(0,7).toLowerCase(),
 				str_https = con.substr(0,8).toLowerCase(),
-				con = (str == protocol || str_https == protocol_https) ? con : (str_https == protocol_https ? protocol_https : protocol) + con, //用户如果忘记填写协议，自动加上
+				con = tp == 0 ? (str == protocol || str_https == protocol_https) ? con : (str_https == protocol_https ? protocol_https : protocol) + con : con, //如果是网址，忘记填写协议，自动加上
 				size = 5, //二维码尺寸
 				border_size = $border_size && $border_size.value || 2, //边框尺寸
 				copyright = $copyright && $copyright.value || '', //自定义版权文字
@@ -260,6 +290,8 @@ if(isset($_GET['t'])){
 		// 重置二维码内容输入框
 		$qrcodes.style.display = 'none';
 		$download.style.display = 'none';
+		$content.value = '';
+		$copyright.value = '';
 		cacheJS.delStorage('qrcode');
 		cacheJS.delStorage('qrcontent');
 		cacheJS.delStorage('qrcopyright');
@@ -282,6 +314,9 @@ if(isset($_GET['t'])){
 
 				//设置颜色
 				qr.color = qr.color == '0,0,0' || qr.color == '255,255,255' ? '0,0,0' : qr.color;
+				if (!qr.color) {
+					qr.color = '0,0,0';
+				}
 				var imageData = ctx.getImageData(0, 0, qrWidth, qrHeight);
 				var pxData = imageData.data;  //获取每一个像素
 				var qrcolor = qr.color.split(','); //选择的颜色 rgb
