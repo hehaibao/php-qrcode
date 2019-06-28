@@ -1,0 +1,14 @@
+<!--pages/main/index.wxml-->
+<view class="container-box">
+    <view class="img-box">
+        <canvas bindtap="previewImg" hidden="{{canvasHidden}}" style="width: 686rpx;height: 686rpx;background:#f1f1f1;" canvas-id="qrCanvas"/>
+    </view>
+    <form bindsubmit="formSubmit">
+        <view class="input-row">
+            <label>网址</label>
+            <input name='url' value='' type="text" maxlength="255" placeholder="{{placeholder}}"/>
+        </view>
+        <button formType="submit" class="btn" type="primary">生成二维码</button>
+    </form>
+</view>
+<view hidden="{{maskHidden}}" class="mask"></view>
