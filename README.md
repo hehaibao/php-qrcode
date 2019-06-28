@@ -2,6 +2,8 @@
 
 基于phpqrcode+js实现的在线生成二维码工具(canvas版)，个人已使用许久。
 
+新增小程序版本，wxapp-qrcode文件夹，代码下载后可在本地的微信开发者工具中导入查看。
+
 ### 目前支持的功能：
 
   可选择类型、随意更换颜色、可自定义版权文案、可一键下载二维码，可重置，支持页面刷新等。
@@ -14,6 +16,8 @@ http://www.hehaibao.com/qr
 ### 效果预览：
 
 ![image](https://github.com/hehaibao/php-qrcode/blob/master/preview.gif)
+
+![image](https://github.com/hehaibao/php-qrcode/blob/master/wxapp-qrcode/demo.jpg)
 
 
 ### 更新日志：
